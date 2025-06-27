@@ -4,23 +4,41 @@
   <meta charset="UTF-8">
   <title>Tennis Ranking</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #333; }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h1, h2 { color: #333; }
     form { margin-bottom: 30px; }
-    input { margin: 5px; padding: 5px; }
-    button { padding: 5px 10px; }
-    table { border-collapse: collapse; width: 300px; margin-top: 20px; }
+    input, select { margin: 5px; padding: 5px; }
+    button { padding: 5px 10px; margin-top: 10px; }
+    table { border-collapse: collapse; width: 300px; margin-top: 20px; background: #fff; }
     th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
-    th { background-color: #f0f0f0; }
+    th { background-color: #eee; }
   </style>
 </head>
 <body>
   <h1>Tennis Ranking</h1>
 
   <form id="matchForm">
-    <label>Spieler A: <input name="playerA" required></label><br>
-    <label>Spieler B: <input name="playerB" required></label><br>
-    <label>Gewinner: <input name="winner" required></label><br>
+    <label>Spieler A:
+      <select name="playerA" required>
+        <option value="Ali">Ali</option>
+        <option value="Ben">Ben</option>
+        <option value="Chris">Chris</option>
+      </select>
+    </label><br>
+    <label>Spieler B:
+      <select name="playerB" required>
+        <option value="Ali">Ali</option>
+        <option value="Ben">Ben</option>
+        <option value="Chris">Chris</option>
+      </select>
+    </label><br>
+    <label>Gewinner:
+      <select name="winner" required>
+        <option value="Ali">Ali</option>
+        <option value="Ben">Ben</option>
+        <option value="Chris">Chris</option>
+      </select>
+    </label><br>
     <button type="submit">Match eintragen</button>
   </form>
 
@@ -31,26 +49,24 @@
   </table>
 
   <script>
-    document.getElementById("matchForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const playerA = data.get("playerA");
-      const playerB = data.get("playerB");
-      const winner = data.get("winner");
+    const defaultPlayers = {
+      Ali: 1000,
+      Ben: 1000,
+      Chris: 1000
+    };
 
-      const res = await fetch(`/api/submit?playerA=${playerA}&playerB=${playerB}&winner=${winner}`);
-      const json = await res.json();
-      alert(JSON.stringify(json));
-      loadRanking();
-    });
+    function loadPlayers() {
+      return JSON.parse(localStorage.getItem("players")) || { ...defaultPlayers };
+    }
 
-    async function loadRanking() {
-      const res = await fetch("/data.json");
-      const data = await res.json();
+    function savePlayers(players) {
+      localStorage.setItem("players", JSON.stringify(players));
+    }
+
+    function updateRankingTable(players) {
       const table = document.getElementById("rankingTable").querySelector("tbody");
       table.innerHTML = "";
-
-      const sorted = Object.entries(data.players).sort((a, b) => b[1] - a[1]);
+      const sorted = Object.entries(players).sort((a, b) => b[1] - a[1]);
       for (const [name, score] of sorted) {
         const row = document.createElement("tr");
         row.innerHTML = `<td>${name}</td><td>${score}</td>`;
@@ -58,7 +74,49 @@
       }
     }
 
-    loadRanking();
+    document.getElementById("matchForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const playerA = form.playerA.value;
+      const playerB = form.playerB.value;
+      const winner = form.winner.value;
+
+      if (playerA === playerB) {
+        alert("Spieler dürfen nicht gleich sein!");
+        return;
+      }
+
+      let players = loadPlayers();
+      const aPoints = players[playerA];
+      const bPoints = players[playerB];
+      const diff = Math.abs(aPoints - bPoints);
+      let pointsA = 0, pointsB = 0;
+
+      if (diff >= 200) {
+        alert("Match zählt nicht (zu großer Klassenunterschied)");
+        return;
+      }
+
+      if (diff < 100) {
+        pointsA = winner === playerA ? 20 : -20;
+        pointsB = winner === playerB ? 20 : -20;
+      } else if (aPoints > bPoints) {
+        pointsA = winner === playerA ? 10 : -10;
+        pointsB = winner === playerB ? 30 : -30;
+      } else {
+        pointsA = winner === playerA ? 30 : -30;
+        pointsB = winner === playerB ? 10 : -10;
+      }
+
+      players[playerA] += pointsA;
+      players[playerB] += pointsB;
+
+      savePlayers(players);
+      updateRankingTable(players);
+      alert("Match eingetragen!");
+    });
+
+    updateRankingTable(loadPlayers());
   </script>
 </body>
 </html>
