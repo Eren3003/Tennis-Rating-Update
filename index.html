@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Tennis Ranking</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; }
+    form { margin-bottom: 30px; }
+    input { margin: 5px; padding: 5px; }
+    button { padding: 5px 10px; }
+    table { border-collapse: collapse; width: 300px; margin-top: 20px; }
+    th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
+    th { background-color: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <h1>Tennis Ranking</h1>
+
+  <form id="matchForm">
+    <label>Spieler A: <input name="playerA" required></label><br>
+    <label>Spieler B: <input name="playerB" required></label><br>
+    <label>Gewinner: <input name="winner" required></label><br>
+    <button type="submit">Match eintragen</button>
+  </form>
+
+  <h2>Aktuelles Ranking</h2>
+  <table id="rankingTable">
+    <thead><tr><th>Spieler</th><th>Punkte</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    document.getElementById("matchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const playerA = data.get("playerA");
+      const playerB = data.get("playerB");
+      const winner = data.get("winner");
+
+      const res = await fetch(`/api/submit?playerA=${playerA}&playerB=${playerB}&winner=${winner}`);
+      const json = await res.json();
+      alert(JSON.stringify(json));
+      loadRanking();
+    });
+
+    async function loadRanking() {
+      const res = await fetch("/data.json");
+      const data = await res.json();
+      const table = document.getElementById("rankingTable").querySelector("tbody");
+      table.innerHTML = "";
+
+      const sorted = Object.entries(data.players).sort((a, b) => b[1] - a[1]);
+      for (const [name, score] of sorted) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${name}</td><td>${score}</td>`;
+        table.appendChild(row);
+      }
+    }
+
+    loadRanking();
+  </script>
+</body>
+</html>
